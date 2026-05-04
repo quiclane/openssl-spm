@@ -1,0 +1,4 @@
+build/openssl/
+build/output/
+build/*.log
+.DS_Store
