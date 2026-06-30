@@ -10,8 +10,8 @@ let package = Package(
     targets: [
         .binaryTarget(
             name: "OpenSSL",
-            url: "https://github.com/quiclane/openssl-spm/releases/download/3.5.7/OpenSSL.xcframework.zip",
-            checksum: "f26e01e627ed5018743e5bd3c55a463e54d1c561355a763c17f505dd3d32e6e2"
+            url: "https://github.com/quiclane/openssl-spm/releases/download/3.5.8/OpenSSL.xcframework.zip",
+            checksum: "7092ae79484d17745ac9eb1e078c31b9b9577749cb76dcc792dfe60be872e0c7"
         ),
     ]
 )
