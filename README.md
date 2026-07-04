@@ -1,25 +1,26 @@
 # openssl-spm
 
 Static, **arm64-only** OpenSSL as an Apple **XCFramework**, packaged for Swift
-Package Manager. Add it by URL and `import OpenSSL` — the binary is committed at
-the repo root and referenced by **path**, so every tag/branch is self-contained
-and reproducible (no release-zip checksum to drift).
+Package Manager. Add it by URL and `import OpenSSL`. Each version is an
+**immutable semver tag** whose `Package.swift` pins its own release-zip **url +
+checksum** — a tag never changes what it resolves to, and the repo stays tiny
+(the binary ships as a release asset, not committed).
 
 ## Two channels
 
 | Channel | Add as | Updates | For |
 |---|---|---|---|
-| **Stable** | Exact `1.0.0` | **Never** — locked to the day it was cut | reproducible / shipping builds |
-| **Dev (rolling)** | Branch `dev` | Automatic, at most **every 14 days** from upstream | latest OpenSSL |
+| **Stable** | `exact: "1.0.0"` | **Never** — frozen forever | reproducible / shipping builds |
+| **Dev (rolling)** | `.upToNextMinor(from: "1.0.1")` → newest immutable **`1.0.N`** tag | Automatic, at most **every 14 days** | latest OpenSSL |
 
 ### Xcode
 - **Stable:** File → Add Package Dependencies → `https://github.com/quiclane/openssl-spm` → **Exact Version** `1.0.0`.
-- **Dev:** same URL → **Branch** `dev`.
+- **Dev:** same URL → **Up to Next Minor Version** → `1.0.1` (auto-tracks the newest `1.0.N`).
 
 ### Package.swift
 ```swift
-.package(url: "https://github.com/quiclane/openssl-spm", exact: "1.0.0")   // stable, locked
-.package(url: "https://github.com/quiclane/openssl-spm", branch: "dev")    // rolling
+.package(url: "https://github.com/quiclane/openssl-spm", exact: "1.0.0")                 // stable, frozen
+.package(url: "https://github.com/quiclane/openssl-spm", .upToNextMinor(from: "1.0.1"))  // rolling dev
 ```
 Then: `import OpenSSL`.
 

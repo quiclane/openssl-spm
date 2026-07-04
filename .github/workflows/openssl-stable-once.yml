@@ -1,6 +1,6 @@
 name: openssl-stable-once
-# Manually cut a NEW locked stable tag. Stable is intentionally rare and NEVER
-# auto-updates — a cut tag is frozen forever. Run via "Run workflow".
+# Manually cut a locked stable tag (url-based, frozen forever). A cut tag's
+# url+checksum never change and its release is never auto-deleted.
 on:
   workflow_dispatch:
     inputs:
@@ -11,9 +11,11 @@ permissions:
   contents: write
 jobs:
   build:
-    runs-on: macos-14        # arm64 runner
+    runs-on: macos-14
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - name: Build from tracked upstream
         run: |
           set -euo pipefail
@@ -22,17 +24,22 @@ jobs:
           BRANCH="$(awk -F= '/^branch=/{print $2}' "$CFG" | tail -1)"; [ -n "$BRANCH" ] || BRANCH="openssl-3.6"
           tmp="$(mktemp -d)"; git clone --depth 1 --branch "$BRANCH" "$REPO" "$tmp/src"
           OPENSSL_SRC="$tmp/src" bash ci/build-openssl-apple.sh
-      - name: Tag + release (locked forever)
+      - name: Write url-based Package.swift, tag, frozen release
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           set -euo pipefail
-          v="${{ github.event.inputs.version }}"
+          V="${{ github.event.inputs.version }}"
+          SUM="$(swift package compute-checksum OpenSSL.xcframework.zip)"
+          bash ci/write-package-swift.sh "$V" "$SUM"
           git config user.name  "quiclane"
           git config user.email "quiclane@users.noreply.github.com"
-          git checkout --orphan "stable-$v"
-          git add -A
-          git commit -q -m "stable $v (arm64 OpenSSL xcframework)"
-          git tag "$v"
-          git push origin "$v"
-          gh release create "$v" OpenSSL.xcframework.zip --title "$v" --notes "Locked stable OpenSSL XCFramework (arm64: ios device/sim, macos)."
+          git add Package.swift
+          git commit -q -m "stable $V (OpenSSL, url-based)"
+          git tag -f "$V"
+          git push origin HEAD:main
+          git push -f origin "$V"
+          gh release delete "$V" -y 2>/dev/null || true
+          gh release create "$V" OpenSSL.xcframework.zip \
+            --title "OpenSSL (stable, frozen) $V" \
+            --notes "Frozen stable — never auto-deleted. Pin: exact \"$V\"."
