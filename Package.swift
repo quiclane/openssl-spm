@@ -11,7 +11,7 @@ import PackageDescription
 //   Dev (rolling, ~14 days):  branch: "dev"
 let package = Package(
     name: "OpenSSL",
-    platforms: [.iOS(.v14), .macOS(.v11)],
+    platforms: [.iOS(.v14), .macCatalyst(.v14), .macOS(.v11)],
     products: [
         .library(name: "OpenSSL", targets: ["OpenSSL"]),
     ],

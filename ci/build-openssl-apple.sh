@@ -44,10 +44,11 @@ build_arch() {
 
 build_arch "ios-arm64"           "ios64-cross"        iphoneos        arm64 "-miphoneos-version-min=$DEPLOY_IOS"
 build_arch "ios-arm64-simulator" "iossimulator-xcrun" iphonesimulator arm64 "-mios-simulator-version-min=$DEPLOY_IOS"
-build_arch "macos-arm64"         "darwin64-arm64-cc"  macosx          arm64 "-mmacosx-version-min=$DEPLOY_MAC"
+build_arch "macos-arm64"           "darwin64-arm64-cc"  macosx          arm64 "-mmacosx-version-min=$DEPLOY_MAC"
+build_arch "ios-arm64-maccatalyst" "darwin64-arm64-cc"  macosx          arm64 "-target arm64-apple-ios$DEPLOY_IOS-macabi"
 
 # Swift module map (shim umbrella) so consumers can `import OpenSSL`.
-for slice in ios-arm64 ios-arm64-simulator macos-arm64; do
+for slice in ios-arm64 ios-arm64-simulator macos-arm64 ios-arm64-maccatalyst; do
   inc="$OUT_DIR/$slice/include"
   cat > "$inc/shim.h" <<'EOF'
 #ifndef OPENSSL_SPM_SHIM_H
@@ -83,7 +84,8 @@ XCF="$ROOT/OpenSSL.xcframework"; rm -rf "$XCF"
 xcodebuild -create-xcframework \
   -library "$OUT_DIR/ios-arm64/lib/libOpenSSL.a"           -headers "$OUT_DIR/ios-arm64/include" \
   -library "$OUT_DIR/ios-arm64-simulator/lib/libOpenSSL.a" -headers "$OUT_DIR/ios-arm64-simulator/include" \
-  -library "$OUT_DIR/macos-arm64/lib/libOpenSSL.a"         -headers "$OUT_DIR/macos-arm64/include" \
+  -library "$OUT_DIR/macos-arm64/lib/libOpenSSL.a"           -headers "$OUT_DIR/macos-arm64/include" \
+  -library "$OUT_DIR/ios-arm64-maccatalyst/lib/libOpenSSL.a" -headers "$OUT_DIR/ios-arm64-maccatalyst/include" \
   -output "$XCF"
 
 # Root-level static libs + headers (iOS device slice is canonical).
