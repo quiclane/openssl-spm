@@ -1,0 +1,2 @@
+repo=https://github.com/openssl/openssl.git
+branch=openssl-3.6
