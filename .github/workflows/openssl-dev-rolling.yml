@@ -1,0 +1,79 @@
+name: openssl-dev-rolling
+# Rolling DEV channel: rebuilds from upstream at most every ~14 days and
+# force-updates the `dev` branch to a single fresh commit (no history bloat).
+# Consumers track it with:  .package(url: "...", branch: "dev")
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "0 4 1,15 * *"   # 1st & 15th each month ≈ every ~14 days
+permissions:
+  contents: write
+concurrency:
+  group: openssl-dev
+  cancel-in-progress: false
+jobs:
+  build:
+    runs-on: macos-14        # Apple-silicon (arm64) runner
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: dev
+          fetch-depth: 0
+
+      - name: Gate on upstream change (min 14 days between builds)
+        id: gate
+        run: |
+          set -euo pipefail
+          CFG=ci/openssl-upstream.txt
+          REPO="$(awk -F= '/^repo=/{print $2}' "$CFG" | tail -1)";   [ -n "$REPO" ]   || REPO="https://github.com/openssl/openssl.git"
+          BRANCH="$(awk -F= '/^branch=/{print $2}' "$CFG" | tail -1)"; [ -n "$BRANCH" ] || BRANCH="openssl-3.6"
+          now="$(date +%s)"; last=0
+          [ -f ci/last_success_epoch.txt ] && last="$(tr -dc 0-9 < ci/last_success_epoch.txt || echo 0)"
+          age=$(( now - ${last:-0} ))
+          tmp="$(mktemp -d)"
+          git clone --depth 1 --branch "$BRANCH" "$REPO" "$tmp/src"
+          head="$(git -C "$tmp/src" rev-parse HEAD)"
+          prev=""; [ -f ci/upstream_head.txt ] && prev="$(tr -d ' \r\n' < ci/upstream_head.txt || true)"
+          should=1
+          [ "$age" -lt 1209600 ] && should=0                 # < 14 days → skip
+          [ -n "$prev" ] && [ "$head" = "$prev" ] && should=0 # no upstream change → skip
+          { echo "should=$should"; echo "head=$head"; echo "now=$now"; echo "src=$tmp/src"; } >> "$GITHUB_OUTPUT"
+
+      - name: Build xcframework
+        if: steps.gate.outputs.should == '1'
+        run: OPENSSL_SRC="${{ steps.gate.outputs.src }}" bash ci/build-openssl-apple.sh
+
+      - name: Verify artifacts
+        if: steps.gate.outputs.should == '1'
+        run: |
+          set -euo pipefail
+          test -f OpenSSL.xcframework.zip
+          plutil -p OpenSSL.xcframework/Info.plist | grep -q "ios-arm64"
+          plutil -p OpenSSL.xcframework/Info.plist | grep -q "macos-arm64"
+
+      - name: Force-update dev to a single fresh commit
+        if: steps.gate.outputs.should == '1'
+        run: |
+          set -euo pipefail
+          printf '%s\n' "${{ steps.gate.outputs.head }}" > ci/upstream_head.txt
+          printf '%s\n' "${{ steps.gate.outputs.now }}"  > ci/last_success_epoch.txt
+          git config user.name  "quiclane"
+          git config user.email "quiclane@users.noreply.github.com"
+          git checkout --orphan fresh
+          git add -A
+          git commit -q -m "dev: OpenSSL.xcframework $(date -u +%Y-%m-%d) (upstream ${{ steps.gate.outputs.head }})"
+          git branch -M fresh dev
+          git push -f origin dev
+
+      - name: Replace the rolling dev release (NEVER touches the frozen stable)
+        if: steps.gate.outputs.should == '1'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          # Only ever deletes 'dev-latest' — the frozen stable tag/release is left untouched.
+          gh release delete dev-latest --cleanup-tag -y 2>/dev/null || true
+          gh release create dev-latest OpenSSL.xcframework.zip \
+            --title "dev (rolling $(date -u +%Y-%m-%d))" \
+            --notes "Rolling dev build, replaced every ~14 days. Do NOT pin this tag — use 'branch: dev'. Upstream ${{ steps.gate.outputs.head }}." \
+            --target dev --prerelease
