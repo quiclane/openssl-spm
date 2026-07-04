@@ -31,10 +31,10 @@ extern "C" {
 # define OPENSSL_VERSION_MAJOR  3
 /* clang-format on */
 /* clang-format off */
-# define OPENSSL_VERSION_MINOR  5
+# define OPENSSL_VERSION_MINOR  6
 /* clang-format on */
 /* clang-format off */
-# define OPENSSL_VERSION_PATCH  7
+# define OPENSSL_VERSION_PATCH  4
 /* clang-format on */
 
 /*
@@ -87,10 +87,10 @@ extern "C" {
  * OPENSSL_VERSION_BUILD_METADATA_STR appended.
  */
 /* clang-format off */
-# define OPENSSL_VERSION_STR "3.5.7"
+# define OPENSSL_VERSION_STR "3.6.4"
 /* clang-format on */
 /* clang-format off */
-# define OPENSSL_FULL_VERSION_STR "3.5.7-dev"
+# define OPENSSL_FULL_VERSION_STR "3.6.4-dev"
 /* clang-format on */
 
 /*
@@ -107,7 +107,7 @@ extern "C" {
  */
 
 /* clang-format off */
-# define OPENSSL_VERSION_TEXT "OpenSSL 3.5.7-dev "
+# define OPENSSL_VERSION_TEXT "OpenSSL 3.6.4-dev "
 /* clang-format on */
 
 /* clang-format off */
