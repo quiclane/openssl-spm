@@ -1,17 +1,21 @@
 // swift-tools-version: 5.9
 import PackageDescription
 
+// OpenSSL for Apple platforms — static, arm64-only XCFramework.
+// Slices: ios-arm64 (device), ios-arm64-simulator, macos-arm64.
+// The binary is committed at repo root and referenced by path, so a given
+// tag/branch is fully self-contained and reproducible (SwiftPM checks it out
+// and the .xcframework is right there — no checksum drift).
+//
+//   Stable (locked forever):  exact: "1.0.0"
+//   Dev (rolling, ~14 days):  branch: "dev"
 let package = Package(
     name: "OpenSSL",
-    platforms: [.iOS(.v13), .macOS(.v11)],
+    platforms: [.iOS(.v14), .macOS(.v11)],
     products: [
         .library(name: "OpenSSL", targets: ["OpenSSL"]),
     ],
     targets: [
-        .binaryTarget(
-            name: "OpenSSL",
-            url: "https://github.com/quiclane/openssl-spm/releases/download/3.5.8/OpenSSL.xcframework.zip",
-            checksum: "7092ae79484d17745ac9eb1e078c31b9b9577749cb76dcc792dfe60be872e0c7"
-        ),
+        .binaryTarget(name: "OpenSSL", path: "OpenSSL.xcframework"),
     ]
 )
